@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Дела на сегодня</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%);
+    margin: 0;
+    padding: 20px;
+    color: #333;
+    box-sizing: border-box;
+  }
+  h1 {
+    margin-bottom: 20px;
+    font-size: 2em;
+    color: #fff;
+    text-align: center;
+  }
+  .section {
+    background: rgba(255,255,255,0.8);
+    padding: 15px;
+    border-radius: 10px;
+    margin: 10px 0;
+  }
+  .section h2 {
+    margin-top: 0;
+    font-size: 1.5em;
+  }
+  input[type="number"] {
+    width: 80px;
+    padding: 8px;
+    margin: 5px;
+    font-size: 1em;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+  }
+  button {
+    display: block;
+    width: 80%;
+    max-width: 300px;
+    margin: 10px auto;
+    padding: 15px;
+    font-size: 1.2em;
+    border: none;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    cursor: pointer;
+    transition: background 0.3s;
+  }
+  button:hover {
+    background: #f0f0f0;
+  }
+  #total {
+    margin-top: 30px;
+    font-size: 2em;
+    color: #fff;
+    text-align: center;
+  }
+  #spentThisWeek {
+    margin-top: 10px;
+    font-size: 1.2em;
+    color: #fff;
+    text-align: center;
+  }
+  #limitWarning {
+    margin-top: 10px;
+    text-align: center;
+    font-weight: bold;
+  }
+  @media (max-width: 600px) {
+    body {
+      padding: 10px;
+    }
+    button {
+      padding: 12px;
+      font-size: 1em;
+    }
+    input[type="number"] {
+      width: 60px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<h1>Дела на сегодня</h1>
+
+<div class="section">
+  <h2>Отжимания</h2>
+  <label>Количество отжиманий:</label>
+  <input type="number" id="pushUpsCount" min="0" max="100" value="0" />
+  <button onclick="addPushUps()">Добавить отжимания</button>
+</div>
+
+<div class="section">
+  <h2>Другие дела</h2>
+  <button onclick="addTask('Принять душ', 20)">Принять душ (20р)</button>
+  <button onclick="addTask('Мытье лица', 15)">Мытье лица (15р)</button>
+  <button onclick="addTask('Работа за ПК', 20)">Работа за ПК (20р)</button>
+</div>
+
+<div class="section">
+  <h2>Покупки</h2>
+  <label>Сумма покупки:</label>
+  <input type="number" id="purchaseAmount" min="1" value="1" />
+  <button onclick="makePurchase()">Потратить деньги</button>
+</div>
+
+<div id="limitWarning"></div>
+<div id="total">Общая сумма: 0 рублей</div>
+<div id="spentThisWeek">Потрачено за неделю: 0 рублей из 700</div>
+
+<script>
+const MAX_DAILY_SUM = 100;
+const MAX_WEEKLY_SPEND = 700;
+
+let totalSum = 0;
+let spentThisWeek = 0;
+let lastVisitDate = null;
+
+// Загрузка данных и даты из localStorage
+function loadData() {
+  const savedTotal = localStorage.getItem('totalSum');
+  const savedWeekSpend = localStorage.getItem('spentThisWeek');
+  const savedDate = localStorage.getItem('lastVisitDate');
+
+  if (savedTotal !== null) {
+    totalSum = parseInt(savedTotal);
+  }
+  if (savedWeekSpend !== null) {
+    spentThisWeek = parseInt(savedWeekSpend);
+  }
+  if (savedDate !== null) {
+    lastVisitDate = new Date(savedDate);
+  } else {
+    lastVisitDate = new Date();
+  }
+
+  // Проверка, сменился ли день
+  const today = new Date();
+  if (!isSameDay(today, lastVisitDate)) {
+    totalSum = 0; // сброс дневного лимита
+  }
+  lastVisitDate = today;
+  saveDate();
+}
+
+// Сохраняем дату последнего входа
+function saveDate() {
+  localStorage.setItem('lastVisitDate', new Date().toISOString());
+}
+
+// Проверка, одинаковая ли дата
+function isSameDay(d1, d2) {
+  return d1.getFullYear() === d2.getFullYear() &&
+         d1.getMonth() === d2.getMonth() &&
+         d1.getDate() === d2.getDate();
+}
+
+// Сохраняем данные
+function saveData() {
+  localStorage.setItem('totalSum', totalSum);
+  localStorage.setItem('spentThisWeek', spentThisWeek);
+}
+
+// Обновляем отображение
+function updateDisplay() {
+  document.getElementById('total').textContent = `Общая сумма: ${totalSum} рублей`;
+  document.getElementById('spentThisWeek').textContent = `Потрачено за неделю: ${spentThisWeek} из ${MAX_WEEKLY_SPEND}`;
+  if (totalSum > MAX_DAILY_SUM) {
+    document.getElementById('limitWarning').textContent = `Внимание! Вы превысили дневной лимит ${MAX_DAILY_SUM} рублей!`;
+  } else {
+    document.getElementById('limitWarning').textContent = '';
+  }
+}
+
+// Инициализация
+loadData();
+updateDisplay();
+
+function addPushUps() {
+  const count = parseInt(document.getElementById('pushUpsCount').value) || 0;
+  const amount = count * 1; // 1 рубль за отжимание
+  if (totalSum + amount > MAX_DAILY_SUM) {
+    alert(`Невозможно добавить ${amount} рублей. Дневной лимит ${MAX_DAILY_SUM} рублей.`);
+    return;
+  }
+  totalSum += amount;
+  saveData();
+  updateDisplay();
+  alert(`Добавлено ${amount} рублей за ${count} отжиманий.`);
+  document.getElementById('pushUpsCount').value = 0;
+}
+
+function addTask(taskName, amount) {
+  if (totalSum + amount > MAX_DAILY_SUM) {
+    alert(`Невозможно добавить ${amount} рублей. Дневной лимит ${MAX_DAILY_SUM} рублей.`);
+    return;
+  }
+  totalSum += amount;
+  saveData();
+  updateDisplay();
+  alert(`Задача: ${taskName} выполнена. +${amount} руб.`);
+}
+
+function makePurchase() {
+  const amount = parseInt(document.getElementById('purchaseAmount').value) || 0;
+  if (amount <= 0) {
+    alert('Введите сумму больше нуля');
+    return;
+  }
+  if (spentThisWeek + amount > MAX_WEEKLY_SPEND) {
+    alert(`Невозможно потратить ${amount} рублей. Лимит за неделю ${MAX_WEEKLY_SPEND} рублей.`);
+    return;
+  }
+  if (amount > totalSum) {
+    alert(`Недостаточно средств. Текущая сумма: ${totalSum} рублей.`);
+    return;
+  }
+  totalSum -= amount;
+  spentThisWeek += amount;
+  saveData();
+  updateDisplay();
+  alert(`Потрачено ${amount} рублей на покупки.`);
+}
+</script>
+
+</body>
+</html>
